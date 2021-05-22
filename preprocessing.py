@@ -5,7 +5,7 @@ import os
 
 from tqdm import tqdm
 
-def process_data_all(folders, folder_main_loc="data/", main_file="2021_04"):
+def process_data_all(folders, folder_main_loc="data/", main_file="2021_04", overwrite=False):
     """
     Iterates over all specified folders to process a dataframe for each group.
     Data is then joined together and deduplicated.
@@ -14,6 +14,12 @@ def process_data_all(folders, folder_main_loc="data/", main_file="2021_04"):
             folder_main_loc --> string for the folder to store data files (default is data/)
             main_file --> string name for our main folder (only necessary deduplicating data, e.g. we need a baseline)
     """
+    files = [f + ".parquet.gzip" for f in folders]
+    files_exist = np.array([os.path.exists(folder_main_loc + f) for f in files])
+    if not overwrite and np.all(files_exist):
+        final_df = unduplicate_data(folder_main_loc, main_file, folders)
+        return final_df
+    # otherwise prooceed
     data = []
     # double check that main_file has been included in list of folders to process
     if main_file not in folders: folders.append(main_file)
@@ -81,7 +87,7 @@ def process_data_csv(file_path):
     # specify cols to keep
     df_cols_to_keep = [
          "state", "usd_goal", "available_time", "blurb_len", "launched_at", "deadline", "blurb",
-        "name", "currency", "country", "is_starred", "is_starrable", "spotlight", "staff_pick", "photo"
+        "name", "currency", "country", "is_starred", "is_starrable", "spotlight", "staff_pick", "photo", "urls"
     ]
     return df[ df_cols_to_keep + cat_cols_to_keep + loc_cols_to_keep ]
 
@@ -93,7 +99,7 @@ def unduplicate_data(folder_path, main_file, addtl_files, features_dup=None, ext
     overlap. Ideally, we would remove these rows earlier in the pipeline, but for now this seems fine.
     Currently, to drop duplicates we are selecting the following subset of features to identify :
 
-                    ["blurb", "name", "usd_goal", "launched_at", "deadline"]
+                    ["blurb", "name", "launched_at", "deadline"]
 
     types:
         main_file --> string to path of main file (name, no extension necessary)
@@ -101,19 +107,19 @@ def unduplicate_data(folder_path, main_file, addtl_files, features_dup=None, ext
         features_dup --> list of features to use to identify duplicate rows
     """
     # in order to remove duplicate rows, we need to start with a main file
-    main_data = pd.read_parquet(main_file + extension)
+    main_data = pd.read_parquet(folder_path + main_file + extension)
     # initialize duplicate features
-    if features_dup is None: features_dup = ["blurb", "name", "usd_goal", "launched_at", "deadline"]
+    if features_dup is None: features_dup = ["blurb", "name", "launched_at", "deadline"]
     for new_file in addtl_files:
-        tmp = pd.read_parquet(new_file + extension)
+        tmp = pd.read_parquet(folder_path + new_file + extension)
         # combine and drop duplicates
         main_data = pd.concat((main_data, tmp)).drop_duplicates(subset=features_dup)
         del tmp # not sure if this is fully necessary, but ease load
         print("Adding file", new_file, "to yield new shape {}".format(main_data.shape))
-    main_data.to_parquet(folder_path + "/" +  "all_processed_df" + extension)
+    main_data.to_parquet(folder_path +  "all_processed_df" + extension)
     return main_data
 
 
 if __name__ == '__main__':
-    folders = ["2021_04", "2021_03", "2021_02", "2020_12", "2020_04"]
-    process_data_all(folders, "data/",  "2021_04")
+    folders = ["2021_04", "2021_03", "2021_02", "2020_12", "2020_04", "2019_04"]
+    process_data_all(folders, "data/",  "2021_04", overwrite=True)
