@@ -1,6 +1,6 @@
 {
     "cv":true,
-    "train_frac":0.3,
+    "test_frac":0.3,
     "lnom_usdgoal":true,
     "dummies":true,
     "rseed":229,

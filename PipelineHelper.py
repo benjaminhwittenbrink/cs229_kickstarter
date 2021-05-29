@@ -149,7 +149,6 @@ def run_linear_models(X_train, y_train, train_weights, params, rseed=229):
     ols = lm.LinearRegression(normalize=False) # drop cols below to avoid perfect colinearity
     perf_col_dummies = ['dummy_cat_id_1','dummy_cat_parent_id_1.0']
     ols.fit(X_train.drop(columns=perf_col_dummies, errors='ignore'), y_train, sample_weight=train_weights)
-    else: ols.fit(X_train.drop(columns=perf_col_dummies), y_train, sample_weight=train_weights)
     ### b. Lasso
     clf_lasso = lm.Lasso(alpha=params['lasso_alpha'], normalize=False, random_state=rseed)
     clf_lasso.fit(X_train, y_train, sample_weight=train_weights)
