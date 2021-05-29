@@ -74,8 +74,10 @@ except:
 # get Word2Vec model predictions
 logger.info("Loading Word2Vec dimension predictions")
 try:
-    w2v_train = np.load("data/res/w2v_Xtrain_avg_big.npy")
-    w2v_test = np.load("data/res/w2v_Xtest_avg_big.npy")
+    f = open("data/res/w2v_dict.pkl", "rb")
+    w2v_dict = pickle.load(f)
+    f.close()
+    w2v_train, w2v_test = w2v_dict.values()
 except:
     raise Warning("Word2Vec function not implemented. Running without it -- likely will crash.")
 
