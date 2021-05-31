@@ -9,7 +9,7 @@ from model_metrics import format_results
 from sklearn.pipeline import Pipeline
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer, TfidfTransformer
-
+from sklearn.preprocessing import StandardScaler
 import sklearn.linear_model as lm
 import sklearn.ensemble as em
 import lightgbm as lgb
@@ -94,13 +94,32 @@ def train_lda_model(train_token, test_token, params):
     return lda_train, lda_test
 
 
-
-
-
-
-
-
-
+def scale_data(X_train, X_test, addtl_cols=None):
+    """
+    Scale data according to standard normal distribution. 
+    """
+    # initialize scaler
+    scaler = StandardScaler()
+    X_train_scale = X_train.copy()
+    X_test_scale = X_test.copy()
+    # scale time vars + str length vars 
+    time_vars = ["deadline", "launched_at", "time_diff"]
+    scale_vars = ["blurb_len", "name_len"] + time_vars
+    X_train_scale[ scale_vars ] = scaler.fit_transform(X_train[ scale_vars ])
+    X_test_scale[ scale_vars ] = scaler.transform(X_test[ scale_vars ])
+    # scale usd goal columns 
+    usd_goal_cols = X_train_scale.columns[X_train_scale.columns.str.contains("usd_goal")]
+    X_train_scale[ usd_goal_cols ] = scaler.fit_transform(X_train_scale[ usd_goal_cols ])
+    X_test_scale[ usd_goal_cols ] = scaler.transform(X_test_scale[ usd_goal_cols ])
+    # scale any additional columns: 
+    if addtl_cols not None: 
+        try: 
+            X_train_scale[ addtl_cols ] = scaler.fit_transform(X_train_scale[ addtl_cols ])
+            X_test_scale[ addtl_cols ] = scaler.transform(X_test_scale[ addtl_cols ])
+        except: 
+            raise Warning("Columns do not exist, returning scaled df without additional columns.")
+            
+    return X_train_scale, X_test_scale
 
 
 def run_analyses(X_train, y_train, X_test, y_test, params):
