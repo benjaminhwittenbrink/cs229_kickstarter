@@ -40,5 +40,10 @@
         "min_samples_leaf":10,
         "min_samples_split":2,
         "n_estimators":30
+    },
+    "svm":{
+        "C":0.1,
+        "loss":"hinge",
+        "dual":false
     }
 }
