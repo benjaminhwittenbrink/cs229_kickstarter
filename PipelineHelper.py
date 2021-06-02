@@ -189,7 +189,7 @@ def run_linear_models(X_train, y_train, train_weights, params, rseed=229):
     return [ols, clf_lasso, clf_ridge, logreg]
 
 def run_svm(X_train, y_train, params, rseed=229):
-    svm = LinearSVC(C=params["C"], dual=params["dual"])
+    svm = LinearSVC(C=params["C"], dual=params["dual"], class_weight=params["class_weight"])
     scaler = MinMaxScaler()
     X_train_minmax = scaler.fit_transform(X_train)
     svm.fit(X_train_minmax, y_train)

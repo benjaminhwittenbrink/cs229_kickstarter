@@ -43,7 +43,7 @@
     },
     "svm":{
         "C":0.1,
-        "loss":"hinge",
-        "dual":false
+        "dual":false,
+        "class_weight":"balanced"
     }
 }
