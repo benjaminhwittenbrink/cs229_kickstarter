@@ -12,5 +12,6 @@ The main pipeline is as follows:
         v). computes performance of all of these methods using model_metrics.py
         
 NOTE: pipeline.py is currently a bit outdated relative to pipeline_notebook.ipynb. When there exist discrepancies, defer to the notebook. 
-NOTE: A lof of the model training, cross-validation, etc. was done in various notebooks in dev and/or main analysis        
-          
+NOTE: A lot of the model training, cross-validation, etc. was done in various notebooks in dev and/or main analysis        
+NOTE: Resolving conflict between Sauren's CoreNLP methods and my pipeline proved very cumbersome, so we just created two versions: 
+saruen_pipeline_notebook and pipeline_notebook

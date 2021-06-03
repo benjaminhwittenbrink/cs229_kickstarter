@@ -10,8 +10,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer, TfidfTransformer
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 import sklearn.linear_model as lm
 import sklearn.ensemble as em
+from sklearn.svm import LinearSVC
 import lightgbm as lgb
 
 logger = logging.getLogger(__name__)
@@ -169,7 +171,7 @@ def scale_data(X_train, X_test, addtl_cols=None):
     return X_train_scale, X_test_scale
 
 
-def run_analyses(X_train, y_train, X_test, y_test, params):
+def run_analyses(X_train, y_train, X_test, y_test, params, skip_svm=True):
     """
     Run a set of classification models according to passed in parameters.
     Fit on train data, predict on test data. Returns a dataframe of performance
@@ -188,10 +190,22 @@ def run_analyses(X_train, y_train, X_test, y_test, params):
     logger.info("Fitting random forest")
     rf = run_rf(X_train, y_train, params['random_forest'], rseed=params['rseed'])
     stat_df_em, pred_df_em = format_results([lgbm, rf], X_test, y_test, ["LGBMClassifier", "RandomForestClassifier"])
-    # concatenate results
-    stat_df = pd.concat((stat_df_lm, stat_df_em))
-    pred_df = pd.concat((pred_df_lm, pred_df_em), axis=1)
-    models = linear_models + [lgbm, rf]
+    # svm
+    if not skip_svm:
+        logger.info("Fitting SVM")
+        svm = run_svm(X_train, y_train, params['svm'], rseed=params['rseed'])
+        
+        scaler = MinMaxScaler()
+        X_test_minmax = scaler.fit_transform(X_test)
+        stat_df_mm, pred_df_mm = format_results([svm], X_test_minmax, y_test, ["SVMClassifier"])
+        # concatenate results
+        stat_df = pd.concat((stat_df_lm, stat_df_em, stat_df_mm))
+        pred_df = pd.concat((pred_df_lm, pred_df_em, pred_df_mm), axis=1)
+        models = linear_models + [lgbm, rf, svm]
+    else: 
+        stat_df = pd.concat((stat_df_lm, stat_df_em))
+        pred_df = pd.concat((pred_df_lm, pred_df_em), axis=1)
+        models = linear_models + [lgbm, rf]
     return stat_df, pred_df, models
 
 def get_weights(y_train, y_test):
@@ -214,19 +228,25 @@ def run_linear_models(X_train, y_train, train_weights, params, rseed=229):
     ### a. OLS
     ols = lm.LinearRegression(normalize=False) # drop cols below to avoid perfect colinearity
     perf_col_dummies = ['dummy_cat_id_1','dummy_cat_parent_id_1.0']
-    ols.fit(X_train.drop(columns=perf_col_dummies, errors='ignore'), y_train, sample_weight=train_weights)
+    ols.fit(X_train.drop(columns=perf_col_dummies, errors='ignore'), y_train)
     ### b. Lasso
     clf_lasso = lm.Lasso(alpha=params['lasso_alpha'], normalize=False, random_state=rseed)
-    clf_lasso.fit(X_train, y_train, sample_weight=train_weights)
+    clf_lasso.fit(X_train, y_train)
     ### c. Ridge
     clf_ridge = lm.Ridge(alpha=params['ridge_alpha'], normalize=False, random_state=rseed)
-    clf_ridge.fit(X_train, y_train, sample_weight=train_weights)
+    clf_ridge.fit(X_train, y_train)
     ### d. Logistic
     logreg = lm.LogisticRegression(C=params['logreg_C'], penalty=params['logreg_penalty'], random_state=rseed, class_weight='balanced')
     logreg.fit(X_train, y_train)
 
     return [ols, clf_lasso, clf_ridge, logreg]
 
+def run_svm(X_train, y_train, params, rseed=229):
+    svm = LinearSVC(C=params["C"], dual=params["dual"], class_weight=params["class_weight"])
+    scaler = MinMaxScaler()
+    X_train_minmax = scaler.fit_transform(X_train)
+    svm.fit(X_train_minmax, y_train)
+    return svm
 
 def run_lgb(X_train, y_train, params, rseed=229):
     """
