@@ -49,7 +49,7 @@ def split_data(df, outcome, lnom_frac, test_frac, rseed):
     return X_train, X_lnom, X_test, y_train, y_lnom, y_test
 
 def specify_features(X_train, lnom_usdgoal=True, dummies=False):
-
+    cv_col = ["cv_group", "un_id"]
     # categorical variables (we won't use these raw, but will use lnom results)
     categorical_cols = ["currency", "country", "cat_id", "cat_parent_id", "loc_id", "loc_type"]
     categorical_cols_stds = ["cat_id", "cat_parent_id"]
@@ -58,10 +58,10 @@ def specify_features(X_train, lnom_usdgoal=True, dummies=False):
     X_lnom_cols_usdgoal = pd.Series(categorical_cols) + "_usd_goal_mean"
     X_std_cols = np.concatenate((pd.Series(categorical_cols_stds) + "_outcome_std", pd.Series(categorical_cols_stds) + "_usd_goal_std"))
     # specify other features here
-    X_cols = ["blurb_len", "name_len", "usd_goal", "deadline", "launched_at", "time_diff"]
+    X_cols = [ "blurb_len", "name_len", "usd_goal", "deadline", "launched_at", "time_diff"]
 
-    if lnom_usdgoal: X_cols_all = np.concatenate((X_cols, X_lnom_cols_outcome, X_lnom_cols_usdgoal, X_std_cols))
-    else: X_cols_all = np.concatenate((X_cols, X_lnom_cols_outcome, X_std_cols))
+    if lnom_usdgoal: X_cols_all = np.concatenate((cv_col, X_cols, X_lnom_cols_outcome, X_lnom_cols_usdgoal, X_std_cols))
+    else: X_cols_all = np.concatenate((cv_col, X_cols, X_lnom_cols_outcome, X_std_cols))
     if dummies:
         dummy_cols = [col for col in X_train.columns if "dummy" in col]
         X_cols_all = np.concatenate((X_cols_all, dummy_cols))
@@ -225,7 +225,7 @@ def clean_text(txt):
 
 def tokenize_text(blurb_col):
     tokens = []
-    for sent in nltk.sent_tokenize(text, language='english'):
+    for sent in nltk.sent_tokenize(blurb_col, language='english'):
         for word in nltk.word_tokenize(sent, language='english'):
             if len(word) >= 2: tokens.append(word)
     return tokens

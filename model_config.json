@@ -19,8 +19,8 @@
         "rseed":229
     },
     "linear_models":{
-        "lasso_alpha":0.05,
-        "ridge_alpha":0.05,
+        "lasso_alpha":0.75,
+        "ridge_alpha":0.75,
         "logreg_C":1000,
         "logreg_penalty":"none"
     },
@@ -35,10 +35,10 @@
     },
     "random_forest":{
         "bootstrap":false,
-        "max_depth":35,
+        "max_depth":55,
         "max_features":"auto",
         "min_samples_leaf":10,
         "min_samples_split":2,
-        "n_estimators":30
+        "n_estimators":200
     }
 }

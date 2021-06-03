@@ -93,6 +93,53 @@ def train_lda_model(train_token, test_token, params):
 
     return lda_train, lda_test
 
+def train_w2v_model(blurb_train, blurb_test, gnews_path="/Users/benji/Downloads/GoogleNews-vectors-negative300.bin"):
+    """ 
+    Note: need to specify path to Google News Vectors file 
+    Also, requires loading a bunch of models which I don't want to pollute namespace so only do if this is called. 
+    """
+    import gensim
+    from gensim.models import Word2Vec
+    # some necessary funcs 
+    def word_averaging(wv, words):
+        #all_words = set()
+        mean = []
+
+        for wrd in words: 
+            if isinstance(wrd, np.ndarray):
+                mean.append(wrd)
+            elif wrd in wv.key_to_index:
+                mean.append(wv.get_vector(wrd, norm=True))
+                #all_words.add(wv.key_to_index[wrd])
+
+        if not mean: 
+            logging.warning("cannot compute similarity with no input %s", words)
+            return np.zeros(wv.vector_size, )
+        mean = gensim.matutils.unitvec(np.array(mean).mean(axis=0)).astype(np.float32)
+        return mean
+
+    def word_averaging_list(wv, text_list):
+        return np.vstack( [word_averaging(wv, post) for post in text_list ])
+
+    def w2v_tokenize_text(text):
+        tokens = []
+        for sent in nltk.sent_tokenize(text, language='english'):
+            for word in nltk.word_tokenize(sent, language='english'):
+                if len(word) < 2:
+                    continue
+                tokens.append(word)
+        return tokens
+    logger.info("Loading Google News W2V vectors")
+    wv = gensim.models.KeyedVectors.load_word2vec_format(gnews_path, binary=True)
+    train_tokenized = blurb_train.apply(w2v_tokenize_text)
+    test_tokenized = blurb_test.apply(w2v_tokenize_text)
+    X_train_word_average = word_averaging_list(wv, train_tokenized)
+    X_test_word_average = word_averaging_list(wv, test_tokenized)
+    #np.save("data/res/w2v_Xtrain_avg.npy", X_train_word_average)
+    #np.save("data/res/w2v_Xtest_avg.npy", X_test_word_average)
+    return X_train_word_average, X_test_word_average
+
+    
 
 def scale_data(X_train, X_test, addtl_cols=None):
     """
@@ -112,7 +159,7 @@ def scale_data(X_train, X_test, addtl_cols=None):
     X_train_scale[ usd_goal_cols ] = scaler.fit_transform(X_train_scale[ usd_goal_cols ])
     X_test_scale[ usd_goal_cols ] = scaler.transform(X_test_scale[ usd_goal_cols ])
     # scale any additional columns: 
-    if addtl_cols not None: 
+    if addtl_cols is not None: 
         try: 
             X_train_scale[ addtl_cols ] = scaler.fit_transform(X_train_scale[ addtl_cols ])
             X_test_scale[ addtl_cols ] = scaler.transform(X_test_scale[ addtl_cols ])
